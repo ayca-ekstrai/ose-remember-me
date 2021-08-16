@@ -17,6 +17,7 @@ public class Note {
     private final String content;
 
     public Note(String userId, LocalDateTime timestamp, String groupId, String content) {
+
         this.userId = userId;
         this.timestamp = timestamp;
         this.noteId = String.valueOf(UUID.randomUUID());
@@ -27,6 +28,7 @@ public class Note {
     }
 
     public Note(String userId, LocalDateTime timestamp, String noteId, String groupId, boolean isValid, boolean isPinned, String content) {
+
         this.userId = userId;
         this.timestamp = timestamp;
         this.noteId = noteId;
