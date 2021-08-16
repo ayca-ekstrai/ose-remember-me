@@ -1,5 +1,6 @@
 package io.ekstrai.apps.ose.rmapp.config;
 
+import io.ekstrai.apps.ose.rmapp.persistance.DynamoDbRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,5 +33,10 @@ public class AppConfig {
     @Bean
     public String noteTable() {
         return env.getProperty("aws.dynamo.tableName.note");
+    }
+
+    @Bean(name = "repo")
+    public DynamoDbRepo dynamoDbRepo() {
+        return new DynamoDbRepo();
     }
 }
