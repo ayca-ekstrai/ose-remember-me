@@ -23,4 +23,14 @@ public class AppConfig {
     public DynamoDbClient dynamoDbClient() {
         return DynamoDbClient.create();
     }
+
+    @Bean
+    public String reminderTable() {
+        return env.getProperty("aws.dynamo.tableName.reminder");
+    }
+
+    @Bean
+    public String noteTable() {
+        return env.getProperty("aws.dynamo.tableName.note");
+    }
 }
