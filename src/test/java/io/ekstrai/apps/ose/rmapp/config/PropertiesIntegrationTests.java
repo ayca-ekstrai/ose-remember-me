@@ -11,9 +11,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(SpringExtension.class) //junit4's RunWith() for 5
 @SpringBootTest(classes = RmappApplication.class)
@@ -28,6 +30,9 @@ public class PropertiesIntegrationTests {
     @Autowired
     private ImmutableConfigProperties immutableProperties;
 
+    @Autowired
+    private DynamoDbClient dynamoDbClient;
+
     @Test
     public void whenEnvUsedForDatabaseProperties_thenItWorksProperly() {
 
@@ -40,5 +45,11 @@ public class PropertiesIntegrationTests {
         assertThat(immutableProperties.getAuthMethod()).isEqualTo("SHA1");
         assertThat(immutableProperties.getUsername()).isEqualTo("mary");
         assertThat(immutableProperties.getPassword()).isEqualTo("password");
+    }
+
+    @Test
+    public void dynamoDbClientBeanInjectionWorks() {
+
+        assertThat(dynamoDbClient.listTables().tableNames().size()).isGreaterThan(0);
     }
 }
