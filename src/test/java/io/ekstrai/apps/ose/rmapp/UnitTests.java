@@ -21,7 +21,7 @@ public class UnitTests {
     public void notePojoDefaultConstructorsWorks() {
 
         Note note = new Note(
-                "user", LocalDateTime.now(), "group", "A note");
+                "user", LocalDateTime.now(), "group", "label", "A note");
 
         assertNotNull(note.getNoteId());
         assertTrue(note.isValid());

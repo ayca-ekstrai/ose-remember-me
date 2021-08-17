@@ -30,7 +30,7 @@ public class PersistenceIntegrationTests {
     public void addNewNoteToDynamoDb_successfully() {
 
         final Note note =  new Note(
-                "user_test", LocalDateTime.now(), "group", "A note");
+                "user_test", LocalDateTime.now(), "group", "label", "A note");
 
         assertTrue(repo.addNote(note));
     }
