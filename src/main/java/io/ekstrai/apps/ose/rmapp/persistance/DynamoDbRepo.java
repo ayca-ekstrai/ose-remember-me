@@ -6,12 +6,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
-import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.dynamodb.model.*;
+import sun.awt.AWTIcon32_security_icon_yellow16_png;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class DynamoDbRepo implements IRepository {
@@ -26,6 +27,17 @@ public class DynamoDbRepo implements IRepository {
 
     @Autowired
     private String reminderTable;
+
+    public List<Note> getAllNotes_withUserId(String userId) {
+        Map<String, AttributeValue> keyToGet = new HashMap<>();
+
+        keyToGet.put("userId", AttributeValue.builder().s(userId).build());
+
+        GetItemRequest request = GetItemRequest.builder().key(keyToGet).tableName(noteTable).build();
+
+        //TODO incomplete finish this
+        return new ArrayList<>();
+    }
 
     public boolean addItem(Note note) {
 
@@ -61,6 +73,7 @@ public class DynamoDbRepo implements IRepository {
         } catch (DynamoDbException e) {
             LOG.error("Database error occurred: " + e.getMessage());
             isSuccessful = false;
+            System.exit(1);
         }
         return isSuccessful;
     }
@@ -95,4 +108,18 @@ public class DynamoDbRepo implements IRepository {
 
         return itemValues;
     }
+
+    private Note toNote(Map<String, AttributeValue> itemValues) {
+        return new Note(
+                itemValues.get("userId").s(),
+                LocalDateTime.parse(itemValues.get("timestamp").s()),
+                itemValues.get("noteId").s(),
+                itemValues.getOrDefault("groupId", AttributeValue.builder().s("invalid_group").build()).s(),
+                itemValues.getOrDefault("label", AttributeValue.builder().s("invalid_label").build()).s(),
+                itemValues.getOrDefault("isValid", AttributeValue.builder().bool(false).build()).bool(),
+                itemValues.getOrDefault("isFalse", AttributeValue.builder().bool(false).build()).bool(),
+                itemValues.getOrDefault("content", AttributeValue.builder().s("[empty note]").build()).s());
+    }
+
+
 }

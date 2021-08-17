@@ -45,4 +45,10 @@ public class PersistenceIntegrationTests {
         assertTrue(repo.addItem(reminder));
     }
 
+
+    @Test
+    public void getRetrieveItemFromDynamo_successfully() {
+
+    }
+
 }
