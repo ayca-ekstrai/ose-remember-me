@@ -39,4 +39,5 @@ public class AppConfig {
     public DynamoDbRepo dynamoDbRepo() {
         return new DynamoDbRepo();
     }
+
 }

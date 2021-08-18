@@ -10,10 +10,8 @@ import software.amazon.awssdk.services.dynamodb.model.*;
 import sun.awt.AWTIcon32_security_icon_yellow16_png;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class DynamoDbRepo implements IRepository {
 
@@ -29,14 +27,29 @@ public class DynamoDbRepo implements IRepository {
     private String reminderTable;
 
     public List<Note> getAllNotes_withUserId(String userId) {
-        Map<String, AttributeValue> keyToGet = new HashMap<>();
 
-        keyToGet.put("userId", AttributeValue.builder().s(userId).build());
+        List<Note> notes = new ArrayList<>();
+        List<AttributeValue> values = new ArrayList<>();
+        values.add(AttributeValue.builder().s(userId).build());
+        Map<String, Condition> keyCondition = new HashMap<>();
 
-        GetItemRequest request = GetItemRequest.builder().key(keyToGet).tableName(noteTable).build();
+        keyCondition.put("userId", Condition.builder()
+                .comparisonOperator(ComparisonOperator.EQ)
+                .attributeValueList(values)
+                .build());
+        QueryRequest request = QueryRequest.builder().tableName(noteTable).keyConditions(keyCondition).build();
+        try{
+            QueryResponse response = dynamoDbClient.query(request);
+            response.items().forEach(i -> notes.add(toNote(i)));
+        } catch (ResourceNotFoundException e) {
+            LOG.error("Table can't be found");
 
+        } catch (DynamoDbException e) {
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
         //TODO incomplete finish this
-        return new ArrayList<>();
+        return notes;
     }
 
     public boolean addItem(Note note) {
@@ -121,5 +134,30 @@ public class DynamoDbRepo implements IRepository {
                 itemValues.getOrDefault("content", AttributeValue.builder().s("[empty note]").build()).s());
     }
 
+    // ---- Trash ----
+    public List<Note> fail_getAllNotes_withUserId(String userId) {
+        List<Note> notes = new ArrayList<>();
+        Map<String, AttributeValue> keyToGet = new HashMap<>();
+
+        keyToGet.put("userId", AttributeValue.builder().s(userId).build());
+        Map<String, KeysAndAttributes> tableKeys = new HashMap<>();
+        tableKeys.put(noteTable, KeysAndAttributes.builder().keys(keyToGet).build());
+        BatchGetItemRequest request = BatchGetItemRequest.builder().requestItems(tableKeys).build();
+
+        try{
+            BatchGetItemResponse response = dynamoDbClient.batchGetItem(request);
+            response.responses().values().forEach(l -> {
+                l.forEach(item -> notes.add(toNote(item)));
+            });
+        } catch (ResourceNotFoundException e) {
+            LOG.error("Table can't be found");
+
+        } catch (DynamoDbException e) {
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
+        //TODO incomplete finish this
+        return notes;
+    }
 
 }
