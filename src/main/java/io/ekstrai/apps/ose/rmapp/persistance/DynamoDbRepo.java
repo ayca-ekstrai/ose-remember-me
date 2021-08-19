@@ -7,15 +7,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
-import sun.awt.AWTIcon32_security_icon_yellow16_png;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class DynamoDbRepo implements IRepository {
 
     private static final Logger LOG = LoggerFactory.getLogger(DynamoDbRepo.class);
+
+    private static final String PARTITION_KEY_NAME = "userId";
 
     @Autowired
     private DynamoDbClient dynamoDbClient;
@@ -26,32 +26,27 @@ public class DynamoDbRepo implements IRepository {
     @Autowired
     private String reminderTable;
 
+    /**
+     * Makes a query with the given `userId` returns all notes with identical matching partition key.
+     * @param userId partition key value for Note table
+     * @return List of Note objects with specified partition key.
+     */
     public List<Note> getAllNotes_withUserId(String userId) {
 
         List<Note> notes = new ArrayList<>();
-        List<AttributeValue> values = new ArrayList<>();
-        values.add(AttributeValue.builder().s(userId).build());
-        Map<String, Condition> keyCondition = new HashMap<>();
+        QueryRequest request = QueryRequest.builder()
+                .tableName(noteTable)
+                .keyConditions(toKeyCondition(userId))
+                .build();
 
-        keyCondition.put("userId", Condition.builder()
-                .comparisonOperator(ComparisonOperator.EQ)
-                .attributeValueList(values)
-                .build());
-        QueryRequest request = QueryRequest.builder().tableName(noteTable).keyConditions(keyCondition).build();
-        try{
-            QueryResponse response = dynamoDbClient.query(request);
-            response.items().forEach(i -> notes.add(toNote(i)));
-        } catch (ResourceNotFoundException e) {
-            LOG.error("Table can't be found");
-
-        } catch (DynamoDbException e) {
-            LOG.error("Database error occurred: " + e.getMessage());
-            System.exit(1);
-        }
-        //TODO incomplete finish this
-        return notes;
+        return tryGetAllNotes(notes, request);
     }
 
+    /**
+     * Saves new Note to table.
+     * @param note the Note pojo to be saved
+     * @return true if persistence is successful
+     */
     public boolean addItem(Note note) {
 
         PutItemRequest request = PutItemRequest.builder()
@@ -62,6 +57,11 @@ public class DynamoDbRepo implements IRepository {
         return tryPutItem(request);
     }
 
+    /**
+     * Saves new Reminder to table.
+     * @param reminder the Reminder pojo to be saved
+     * @return true if persistence is successful
+     */
     public boolean addItem(Reminder reminder) {
 
         PutItemRequest request = PutItemRequest.builder()
@@ -71,6 +71,7 @@ public class DynamoDbRepo implements IRepository {
 
         return tryPutItem(request);
     }
+
 
     //----- private methods -----
 
@@ -89,6 +90,33 @@ public class DynamoDbRepo implements IRepository {
             System.exit(1);
         }
         return isSuccessful;
+    }
+
+    private List<Note> tryGetAllNotes(List<Note> notes, QueryRequest request) {
+
+        try{
+            QueryResponse response = dynamoDbClient.query(request);
+            response.items().forEach(i -> notes.add(toNote(i)));
+        } catch (ResourceNotFoundException e) {
+            LOG.error("Table can't be found");
+
+        } catch (DynamoDbException e) {
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
+        return notes;
+    }
+
+    private Map<String, Condition> toKeyCondition(String userId) {
+        List<AttributeValue> values = new ArrayList<>();
+        values.add(AttributeValue.builder().s(userId).build());
+        Map<String, Condition> keyCondition = new HashMap<>();
+
+        keyCondition.put(PARTITION_KEY_NAME, Condition.builder()
+                .comparisonOperator(ComparisonOperator.EQ)
+                .attributeValueList(values)
+                .build());
+        return keyCondition;
     }
 
     private Map<String, AttributeValue> toItemValues(Note note) {
@@ -123,6 +151,7 @@ public class DynamoDbRepo implements IRepository {
     }
 
     private Note toNote(Map<String, AttributeValue> itemValues) {
+
         return new Note(
                 itemValues.get("userId").s(),
                 LocalDateTime.parse(itemValues.get("timestamp").s()),
@@ -134,30 +163,5 @@ public class DynamoDbRepo implements IRepository {
                 itemValues.getOrDefault("content", AttributeValue.builder().s("[empty note]").build()).s());
     }
 
-    // ---- Trash ----
-    public List<Note> fail_getAllNotes_withUserId(String userId) {
-        List<Note> notes = new ArrayList<>();
-        Map<String, AttributeValue> keyToGet = new HashMap<>();
-
-        keyToGet.put("userId", AttributeValue.builder().s(userId).build());
-        Map<String, KeysAndAttributes> tableKeys = new HashMap<>();
-        tableKeys.put(noteTable, KeysAndAttributes.builder().keys(keyToGet).build());
-        BatchGetItemRequest request = BatchGetItemRequest.builder().requestItems(tableKeys).build();
-
-        try{
-            BatchGetItemResponse response = dynamoDbClient.batchGetItem(request);
-            response.responses().values().forEach(l -> {
-                l.forEach(item -> notes.add(toNote(item)));
-            });
-        } catch (ResourceNotFoundException e) {
-            LOG.error("Table can't be found");
-
-        } catch (DynamoDbException e) {
-            LOG.error("Database error occurred: " + e.getMessage());
-            System.exit(1);
-        }
-        //TODO incomplete finish this
-        return notes;
-    }
 
 }

@@ -1,5 +1,6 @@
 package io.ekstrai.apps.ose.rmapp.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.ekstrai.apps.ose.rmapp.persistance.DynamoDbRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -38,6 +39,11 @@ public class AppConfig {
     @Bean(name = "repo")
     public DynamoDbRepo dynamoDbRepo() {
         return new DynamoDbRepo();
+    }
+
+    @Bean(name = "mapper")
+    public ObjectMapper mapper() {
+        return new ObjectMapper().findAndRegisterModules();
     }
 
 }

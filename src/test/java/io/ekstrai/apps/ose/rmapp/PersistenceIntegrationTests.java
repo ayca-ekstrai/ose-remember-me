@@ -26,10 +26,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class PersistenceIntegrationTests {
 
     private static final Logger LOG = LoggerFactory.getLogger(PersistenceIntegrationTests.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+
 
     @Autowired
     private DynamoDbRepo repo;
+
+    @Autowired
+    private ObjectMapper mapper;
 
     @Test
     public void contextLoads() {
@@ -56,18 +59,19 @@ public class PersistenceIntegrationTests {
 
 
 
+    @SneakyThrows
     @Test
     public void getRetrieveItemFromDynamo_successfully() {
-        final Reminder reminder = new Reminder(
-                "user_test", LocalDateTime.now(), LocalDateTime.now().plusDays(2), "work", "meeting");
+        final Note note =  new Note(
+                "user_test", LocalDateTime.now(), "group", "label", "A note");
 
-        assertTrue(repo.addItem(reminder));
+        assertTrue(repo.addItem(note));
 
         List<Note> notes = repo.getAllNotes_withUserId("user_test");
-        assertNotNull(notes);
-        //LOG.info(MAPPER.writeValueAsString(notes));
+        assertTrue(notes.size() > 0);
+
+        LOG.info(mapper.writeValueAsString(notes));
         LOG.info(String.valueOf(notes.size()));
-        LOG.info(notes.toString());
     }
 
 }
