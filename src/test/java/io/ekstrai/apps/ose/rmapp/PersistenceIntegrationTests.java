@@ -61,7 +61,8 @@ public class PersistenceIntegrationTests {
 
     @SneakyThrows
     @Test
-    public void getRetrieveItemFromDynamo_successfully() {
+    public void getAllNotesFromDynamo_successfully() {
+
         final Note note =  new Note(
                 "user_test", LocalDateTime.now(), "group", "label", "A note");
 
@@ -72,6 +73,89 @@ public class PersistenceIntegrationTests {
 
         LOG.info(mapper.writeValueAsString(notes));
         LOG.info(String.valueOf(notes.size()));
+    }
+
+    @SneakyThrows
+    @Test
+    public void getAllRemindersFromDynamo_successfully() {
+
+        final Reminder reminder = new Reminder(
+                "user_test", LocalDateTime.now(), LocalDateTime.now().plusDays(2), "work", "meeting");
+
+        assertTrue(repo.addItem(reminder));
+
+        List<Reminder> reminders = repo.getAllReminder_withUserId("user_test");
+        assertTrue(reminders.size() > 0);
+
+        LOG.info(mapper.writeValueAsString(reminders));
+        LOG.info(String.valueOf(reminders.size()));
+    }
+
+    @SneakyThrows
+    @Test
+    public void getSingleNoteFromDynamo_withPrimaryKey_successfully() {
+
+        final Note note =  new Note(
+                "user_test", LocalDateTime.now(), "group", "label", "A note");
+
+        assertTrue(repo.addItem(note));
+
+        Note returnedNote = repo.getNote(note.getUserId(), note.getTimestamp().toString());
+
+        assertNotNull(returnedNote);
+
+        LOG.info(mapper.writeValueAsString(returnedNote));
+    }
+
+    @SneakyThrows
+    @Test
+    public void getSingleNoteFromDynamo_withGSI_noteId_successfully() {
+
+        final Note note =  new Note(
+                "user_test", LocalDateTime.now(), "group", "label", "A note");
+
+        assertTrue(repo.addItem(note));
+
+        final String noteId = note.getNoteId();
+        Note returnedNote = repo.getNote(noteId);
+
+        assertNotNull(returnedNote);
+
+        LOG.info(mapper.writeValueAsString(returnedNote));
+    }
+
+    @SneakyThrows
+    @Test
+    public void getSingleReminderFromDynamo_withPrimaryKey_successfully() {
+
+        final Reminder reminder = new Reminder(
+                "user_test", LocalDateTime.now(), LocalDateTime.now().plusDays(2), "work", "meeting");
+
+        assertTrue(repo.addItem(reminder));
+
+        Reminder returnedReminder = repo.getReminder(
+                reminder.getUserId(), reminder.getTimestamp().toString());
+
+        assertNotNull(returnedReminder);
+
+        LOG.info(mapper.writeValueAsString(returnedReminder));
+    }
+
+    @SneakyThrows
+    @Test
+    public void getSingleReminderFromDynamo_withGSI_noteId_successfully() {
+
+        final Reminder reminder = new Reminder(
+                "user_test", LocalDateTime.now(), LocalDateTime.now().plusDays(2), "work", "meeting");
+
+        assertTrue(repo.addItem(reminder));
+
+        final String reminderId = reminder.getReminderId();
+        Reminder returnedReminder = repo.getReminder(reminderId);
+
+        assertNotNull(returnedReminder);
+
+        LOG.info(mapper.writeValueAsString(returnedReminder));
     }
 
 }

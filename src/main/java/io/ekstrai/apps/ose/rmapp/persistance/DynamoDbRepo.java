@@ -11,11 +11,17 @@ import software.amazon.awssdk.services.dynamodb.model.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
+/*
+    TODOS:
+    TODO Key Names need to be enumized
+ */
+
 public class DynamoDbRepo implements IRepository {
 
     private static final Logger LOG = LoggerFactory.getLogger(DynamoDbRepo.class);
 
     private static final String PARTITION_KEY_NAME = "userId";
+    private static final String SORT_KEY_NAME = "timestamp";
 
     @Autowired
     private DynamoDbClient dynamoDbClient;
@@ -25,6 +31,116 @@ public class DynamoDbRepo implements IRepository {
 
     @Autowired
     private String reminderTable;
+
+
+    public Note getNote(String noteId) {
+
+        QueryRequest request = QueryRequest.builder()
+                .indexName("gsi-noteId")
+                .tableName(noteTable)
+                .keyConditions(toKeyCondition("noteId", noteId))
+                .build();
+
+        return tryGetNote(request);
+    }
+
+    public Reminder getReminder(String reminderId) {
+
+        QueryRequest request = QueryRequest.builder()
+                .indexName("gsi-reminderId")
+                .tableName(reminderTable)
+                .keyConditions(toKeyCondition("reminderId", reminderId))
+                .build();
+
+        return tryGetReminder(request);
+    }
+
+    private Reminder tryGetReminder(QueryRequest request) {
+
+        Reminder reminder = null;
+        try{
+            QueryResponse response = dynamoDbClient.query(request);
+            reminder = response.hasItems() ?  toReminder(response.items().get(0)) : null;
+        } catch (ResourceNotFoundException e) {
+            LOG.error("Table can't be found");
+
+        } catch (DynamoDbException e) {
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
+        return reminder;
+    }
+
+    public Note getNote(String userId, String timestamp) {
+
+        GetItemRequest request = GetItemRequest.builder()
+                .key(toPrimaryKey(userId, timestamp))
+                .tableName(noteTable)
+                .build();
+
+        return tryGetNote(request);
+    }
+    public Reminder getReminder(String userId, String timestamp) {
+
+        GetItemRequest request = GetItemRequest.builder()
+                .key(toPrimaryKey(userId, timestamp))
+                .tableName(reminderTable)
+                .build();
+
+        return tryGetReminder(request);
+    }
+    private Reminder tryGetReminder(GetItemRequest request) {
+        Reminder reminder = null;
+        try{
+            GetItemResponse response = dynamoDbClient.getItem(request);
+            reminder = response.hasItem() ?  toReminder(response.item()) : null;
+        } catch (ResourceNotFoundException e) {
+            LOG.error("Table can't be found");
+        } catch (DynamoDbException e) {
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
+        return reminder;
+    }
+
+    private Note tryGetNote(QueryRequest request) {
+
+        Note note = null;
+        try{
+            QueryResponse response = dynamoDbClient.query(request);
+            note = response.hasItems() ?  toNote(response.items().get(0)) : null;
+        } catch (ResourceNotFoundException e) {
+            LOG.error("Table can't be found");
+
+        } catch (DynamoDbException e) {
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
+        return note;
+    }
+
+    private Note tryGetNote(GetItemRequest request) {
+        Note note = null;
+        try{
+            GetItemResponse response = dynamoDbClient.getItem(request);
+            note = response.hasItem() ?  toNote(response.item()) : null;
+        } catch (ResourceNotFoundException e) {
+            LOG.error("Table can't be found");
+
+
+        } catch (DynamoDbException e) {
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
+        return note;
+    }
+
+    private Map<String, AttributeValue> toPrimaryKey(String userId, String timestamp) {
+        Map<String, AttributeValue> key = new HashMap<>();
+        key.put(PARTITION_KEY_NAME, AttributeValue.builder().s(userId).build());
+        key.put(SORT_KEY_NAME, AttributeValue.builder().s(timestamp).build());
+        return key;
+    }
 
     /**
      * Makes a query with the given `userId` returns all notes with identical matching partition key.
@@ -36,10 +152,26 @@ public class DynamoDbRepo implements IRepository {
         List<Note> notes = new ArrayList<>();
         QueryRequest request = QueryRequest.builder()
                 .tableName(noteTable)
-                .keyConditions(toKeyCondition(userId))
+                .keyConditions(toKeyCondition(PARTITION_KEY_NAME, userId))
                 .build();
 
         return tryGetAllNotes(notes, request);
+    }
+
+    /**
+     * Makes a query with the given `userId` returns all notes with identical matching partition key.
+     * @param userId partition key value for Note table
+     * @return List of Note objects with specified partition key.
+     */
+    public List<Reminder> getAllReminder_withUserId(String userId) {
+
+        List<Reminder> reminders = new ArrayList<>();
+        QueryRequest request = QueryRequest.builder()
+                .tableName(reminderTable)
+                .keyConditions(toKeyCondition(PARTITION_KEY_NAME, userId))
+                .build();
+
+        return tryGetAllReminders(reminders, request);
     }
 
     /**
@@ -73,14 +205,26 @@ public class DynamoDbRepo implements IRepository {
     }
 
 
+
     //----- private methods -----
+    private Map<String, Condition> toKeyCondition(String keyName, String keyValue) {
+        List<AttributeValue> values = new ArrayList<>();
+        values.add(AttributeValue.builder().s(keyValue).build());
+        Map<String, Condition> keyCondition = new HashMap<>();
+
+        keyCondition.put(keyName, Condition.builder()
+                .comparisonOperator(ComparisonOperator.EQ)
+                .attributeValueList(values)
+                .build());
+        return keyCondition;
+    }
 
     private boolean tryPutItem(PutItemRequest request) {
 
         boolean isSuccessful = true;
         try {
             dynamoDbClient.putItem(request);
-            LOG.info("New note added to table successfully.");
+            LOG.info("New item added to table successfully.");
         } catch (ResourceNotFoundException e) {
             LOG.error("Table can't be found");
             isSuccessful = false;
@@ -107,17 +251,21 @@ public class DynamoDbRepo implements IRepository {
         return notes;
     }
 
-    private Map<String, Condition> toKeyCondition(String userId) {
-        List<AttributeValue> values = new ArrayList<>();
-        values.add(AttributeValue.builder().s(userId).build());
-        Map<String, Condition> keyCondition = new HashMap<>();
+    private List<Reminder> tryGetAllReminders(List<Reminder> reminders, QueryRequest request) {
 
-        keyCondition.put(PARTITION_KEY_NAME, Condition.builder()
-                .comparisonOperator(ComparisonOperator.EQ)
-                .attributeValueList(values)
-                .build());
-        return keyCondition;
+        try{
+            QueryResponse response = dynamoDbClient.query(request);
+            response.items().forEach(i -> reminders.add(toReminder(i)));
+        } catch (ResourceNotFoundException e) {
+            LOG.error("Table can't be found");
+
+        } catch (DynamoDbException e) {
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
+        return reminders;
     }
+
 
     private Map<String, AttributeValue> toItemValues(Note note) {
 
@@ -135,13 +283,26 @@ public class DynamoDbRepo implements IRepository {
         return itemValues;
     }
 
+    private Note toNote(Map<String, AttributeValue> itemValues) {
+
+        return new Note(
+                itemValues.get(PARTITION_KEY_NAME).s(),
+                LocalDateTime.parse(itemValues.get("timestamp").s()),
+                itemValues.get("noteId").s(),
+                itemValues.getOrDefault("groupId", AttributeValue.builder().s("invalid_group").build()).s(),
+                itemValues.getOrDefault("label", AttributeValue.builder().s("invalid_label").build()).s(),
+                itemValues.getOrDefault("isValid", AttributeValue.builder().bool(false).build()).bool(),
+                itemValues.getOrDefault("isPinned", AttributeValue.builder().bool(false).build()).bool(),
+                itemValues.getOrDefault("content", AttributeValue.builder().s("[empty note]").build()).s());
+    }
+
     private Map<String, AttributeValue> toItemValues(Reminder reminder) {
 
         Map<String, AttributeValue> itemValues = new HashMap<>();
 
         itemValues.put("userId", AttributeValue.builder().s(reminder.getUserId()).build());
         itemValues.put("timestamp", AttributeValue.builder().s(String.valueOf(reminder.getTimestamp())).build());
-        itemValues.put("noteId", AttributeValue.builder().s(reminder.getReminderId()).build());
+        itemValues.put("reminderId", AttributeValue.builder().s(reminder.getReminderId()).build());
         itemValues.put("remindDate", AttributeValue.builder().s(String.valueOf(reminder.getRemindDate())).build());
         itemValues.put("label", AttributeValue.builder().s(reminder.getLabel()).build());
         itemValues.put("isValid", AttributeValue.builder().bool(reminder.isValid()).build());
@@ -150,18 +311,19 @@ public class DynamoDbRepo implements IRepository {
         return itemValues;
     }
 
-    private Note toNote(Map<String, AttributeValue> itemValues) {
+    private Reminder toReminder(Map<String, AttributeValue> itemValues) {
 
-        return new Note(
-                itemValues.get("userId").s(),
+        return new Reminder(
+                itemValues.get(PARTITION_KEY_NAME).s(),
                 LocalDateTime.parse(itemValues.get("timestamp").s()),
-                itemValues.get("noteId").s(),
-                itemValues.getOrDefault("groupId", AttributeValue.builder().s("invalid_group").build()).s(),
+                itemValues.get("reminderId").s(),
+                LocalDateTime.parse(itemValues.get("remindDate").s()),
                 itemValues.getOrDefault("label", AttributeValue.builder().s("invalid_label").build()).s(),
                 itemValues.getOrDefault("isValid", AttributeValue.builder().bool(false).build()).bool(),
-                itemValues.getOrDefault("isFalse", AttributeValue.builder().bool(false).build()).bool(),
                 itemValues.getOrDefault("content", AttributeValue.builder().s("[empty note]").build()).s());
     }
+
+
 
 
 }
