@@ -14,6 +14,8 @@ import java.util.*;
 /*
     TODOS:
     TODO Key Names need to be enumized
+    TODO duplicate code can be refactored further thru passing in class type as param
+    TODO more useful logs can be added
  */
 
 public class DynamoDbRepo implements IRepository {
@@ -32,7 +34,42 @@ public class DynamoDbRepo implements IRepository {
     @Autowired
     private String reminderTable;
 
+    /**
+     * Updates a single item and single string type attribute in dynamo table.
+     * @param cls the Class type of the POJO Item. Only Reminder or Note classes allowed.
+     * @param partKey the partition key
+     * @param sortKey the sort key
+     * @param keyName attribute key name
+     * @param keyValue attribute key value
+     * @return true of updating item is complete successfully
+     */
+    public boolean updateItem(Class <?> cls, String partKey, String sortKey,
+                              String keyName, String keyValue) {
 
+        return updateAnyField(cls, toPrimaryKey(partKey, sortKey), toUpdatedValues(keyName, keyValue));
+    }
+
+    /**
+     * Updates a single item and single boolean type attribute in dynamo table.
+     * @param cls the Class type of the POJO Item. Only Reminder or Note classes allowed.
+     * @param partKey the partition key
+     * @param sortKey the sort key
+     * @param flagKeyName attribute key name
+     * @param flagKeyValue attribute key value of boolean type
+     * @return true of updating item is complete successfully
+     */
+    public boolean updateItem( Class <?> cls, String partKey, String sortKey,
+                              String flagKeyName, boolean flagKeyValue) {
+
+        return updateAnyField(
+                cls, toPrimaryKey(partKey, sortKey), toUpdatedValues(flagKeyName, flagKeyValue));
+    }
+
+    /**
+     * Retrieve a single Note object via GSI NoteId
+     * @param noteId the note ID
+     * @return the Note with the given ID
+     */
     public Note getNote(String noteId) {
 
         QueryRequest request = QueryRequest.builder()
@@ -44,6 +81,27 @@ public class DynamoDbRepo implements IRepository {
         return tryGetNote(request);
     }
 
+    /**
+     * Retrieve a single Note object via its primary key
+     * @param userId the partition key
+     * @param timestamp the sort key
+     * @return the Note with the given primary key
+     */
+    public Note getNote(String userId, String timestamp) {
+
+        GetItemRequest request = GetItemRequest.builder()
+                .key(toPrimaryKey(userId, timestamp))
+                .tableName(noteTable)
+                .build();
+
+        return tryGetNote(request);
+    }
+
+    /**
+     * Retrieve a single Reminder object via GSI Reminder Id
+     * @param reminderId the reminder ID
+     * @return the Reminder with the given ID
+     */
     public Reminder getReminder(String reminderId) {
 
         QueryRequest request = QueryRequest.builder()
@@ -55,31 +113,12 @@ public class DynamoDbRepo implements IRepository {
         return tryGetReminder(request);
     }
 
-    private Reminder tryGetReminder(QueryRequest request) {
-
-        Reminder reminder = null;
-        try{
-            QueryResponse response = dynamoDbClient.query(request);
-            reminder = response.hasItems() ?  toReminder(response.items().get(0)) : null;
-        } catch (ResourceNotFoundException e) {
-            LOG.error("Table can't be found");
-
-        } catch (DynamoDbException e) {
-            LOG.error("Database error occurred: " + e.getMessage());
-            System.exit(1);
-        }
-        return reminder;
-    }
-
-    public Note getNote(String userId, String timestamp) {
-
-        GetItemRequest request = GetItemRequest.builder()
-                .key(toPrimaryKey(userId, timestamp))
-                .tableName(noteTable)
-                .build();
-
-        return tryGetNote(request);
-    }
+    /**
+     * Retrieve a single Reminder object via its primary key
+     * @param userId the partition key
+     * @param timestamp the sort key
+     * @return the Reminder with the given primary key
+     */
     public Reminder getReminder(String userId, String timestamp) {
 
         GetItemRequest request = GetItemRequest.builder()
@@ -88,58 +127,6 @@ public class DynamoDbRepo implements IRepository {
                 .build();
 
         return tryGetReminder(request);
-    }
-    private Reminder tryGetReminder(GetItemRequest request) {
-        Reminder reminder = null;
-        try{
-            GetItemResponse response = dynamoDbClient.getItem(request);
-            reminder = response.hasItem() ?  toReminder(response.item()) : null;
-        } catch (ResourceNotFoundException e) {
-            LOG.error("Table can't be found");
-        } catch (DynamoDbException e) {
-            LOG.error("Database error occurred: " + e.getMessage());
-            System.exit(1);
-        }
-        return reminder;
-    }
-
-    private Note tryGetNote(QueryRequest request) {
-
-        Note note = null;
-        try{
-            QueryResponse response = dynamoDbClient.query(request);
-            note = response.hasItems() ?  toNote(response.items().get(0)) : null;
-        } catch (ResourceNotFoundException e) {
-            LOG.error("Table can't be found");
-
-        } catch (DynamoDbException e) {
-            LOG.error("Database error occurred: " + e.getMessage());
-            System.exit(1);
-        }
-        return note;
-    }
-
-    private Note tryGetNote(GetItemRequest request) {
-        Note note = null;
-        try{
-            GetItemResponse response = dynamoDbClient.getItem(request);
-            note = response.hasItem() ?  toNote(response.item()) : null;
-        } catch (ResourceNotFoundException e) {
-            LOG.error("Table can't be found");
-
-
-        } catch (DynamoDbException e) {
-            LOG.error("Database error occurred: " + e.getMessage());
-            System.exit(1);
-        }
-        return note;
-    }
-
-    private Map<String, AttributeValue> toPrimaryKey(String userId, String timestamp) {
-        Map<String, AttributeValue> key = new HashMap<>();
-        key.put(PARTITION_KEY_NAME, AttributeValue.builder().s(userId).build());
-        key.put(SORT_KEY_NAME, AttributeValue.builder().s(timestamp).build());
-        return key;
     }
 
     /**
@@ -205,18 +192,110 @@ public class DynamoDbRepo implements IRepository {
     }
 
 
+    //---------------------------------------
+    //----------- PRIVATE METHODS -----------
+    //---------------------------------------
 
-    //----- private methods -----
-    private Map<String, Condition> toKeyCondition(String keyName, String keyValue) {
-        List<AttributeValue> values = new ArrayList<>();
-        values.add(AttributeValue.builder().s(keyValue).build());
-        Map<String, Condition> keyCondition = new HashMap<>();
+    private boolean updateAnyField(Class<?> cls, Map<String, AttributeValue> itemKey, Map<String, AttributeValueUpdate> updatedValues) {
+        UpdateItemRequest request = null;
 
-        keyCondition.put(keyName, Condition.builder()
-                .comparisonOperator(ComparisonOperator.EQ)
-                .attributeValueList(values)
-                .build());
-        return keyCondition;
+        if (cls == Reminder.class) {
+            request = UpdateItemRequest.builder()
+                    .tableName(reminderTable)
+                    .key(itemKey)
+                    .attributeUpdates(updatedValues)
+                    .build();
+        } else if (cls == Note.class) {
+            request = UpdateItemRequest.builder()
+                    .tableName(noteTable)
+                    .key(itemKey)
+                    .attributeUpdates(updatedValues)
+                    .build();
+        } else {
+            System.exit(1);
+            throw new IllegalArgumentException();
+        }
+
+        return tryUpdateItem(request);
+    }
+
+    private boolean tryUpdateItem(UpdateItemRequest request) {
+
+        boolean updateSuccess = true;
+        try {
+            dynamoDbClient.updateItem(request);
+
+        } catch (ResourceNotFoundException e) {
+            updateSuccess = false;
+            LOG.error("Table can't be found");
+        } catch (DynamoDbException e) {
+            updateSuccess = false;
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
+        return updateSuccess;
+    }
+
+    private Reminder tryGetReminder(QueryRequest request) {
+
+        Reminder reminder = null;
+        try{
+            QueryResponse response = dynamoDbClient.query(request);
+            reminder = response.hasItems() ?  toReminder(response.items().get(0)) : null;
+        } catch (ResourceNotFoundException e) {
+            LOG.error("Table can't be found");
+
+        } catch (DynamoDbException e) {
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
+        return reminder;
+    }
+
+    private Reminder tryGetReminder(GetItemRequest request) {
+        Reminder reminder = null;
+        try{
+            GetItemResponse response = dynamoDbClient.getItem(request);
+            reminder = response.hasItem() ?  toReminder(response.item()) : null;
+        } catch (ResourceNotFoundException e) {
+            LOG.error("Table can't be found");
+        } catch (DynamoDbException e) {
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
+        return reminder;
+    }
+
+    private Note tryGetNote(QueryRequest request) {
+
+        Note note = null;
+        try{
+            QueryResponse response = dynamoDbClient.query(request);
+            note = response.hasItems() ?  toNote(response.items().get(0)) : null;
+        } catch (ResourceNotFoundException e) {
+            LOG.error("Table can't be found");
+
+        } catch (DynamoDbException e) {
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
+        return note;
+    }
+
+    private Note tryGetNote(GetItemRequest request) {
+        Note note = null;
+        try{
+            GetItemResponse response = dynamoDbClient.getItem(request);
+            note = response.hasItem() ?  toNote(response.item()) : null;
+        } catch (ResourceNotFoundException e) {
+            LOG.error("Table can't be found");
+
+
+        } catch (DynamoDbException e) {
+            LOG.error("Database error occurred: " + e.getMessage());
+            System.exit(1);
+        }
+        return note;
     }
 
     private boolean tryPutItem(PutItemRequest request) {
@@ -266,6 +345,42 @@ public class DynamoDbRepo implements IRepository {
         return reminders;
     }
 
+    private Map<String, AttributeValueUpdate> toUpdatedValues(String flagKeyName, boolean flagKeyValue) {
+        Map <String, AttributeValueUpdate> updatedValues = new HashMap<>();
+        updatedValues.put(flagKeyName, AttributeValueUpdate.builder()
+                .value(AttributeValue.builder().bool(flagKeyValue).build())
+                .action(AttributeAction.PUT)
+                .build());
+        return updatedValues;
+    }
+
+    private Map<String, AttributeValueUpdate> toUpdatedValues(String keyName, String keyValue) {
+        Map <String, AttributeValueUpdate> updatedValues = new HashMap<>();
+        updatedValues.put(keyName, AttributeValueUpdate.builder()
+                .value(AttributeValue.builder().s(keyValue).build())
+                .action(AttributeAction.PUT)
+                .build());
+        return updatedValues;
+    }
+
+    private Map<String, AttributeValue> toPrimaryKey(String userId, String timestamp) {
+        Map<String, AttributeValue> key = new HashMap<>();
+        key.put(PARTITION_KEY_NAME, AttributeValue.builder().s(userId).build());
+        key.put(SORT_KEY_NAME, AttributeValue.builder().s(timestamp).build());
+        return key;
+    }
+
+    private Map<String, Condition> toKeyCondition(String keyName, String keyValue) {
+        List<AttributeValue> values = new ArrayList<>();
+        values.add(AttributeValue.builder().s(keyValue).build());
+        Map<String, Condition> keyCondition = new HashMap<>();
+
+        keyCondition.put(keyName, Condition.builder()
+                .comparisonOperator(ComparisonOperator.EQ)
+                .attributeValueList(values)
+                .build());
+        return keyCondition;
+    }
 
     private Map<String, AttributeValue> toItemValues(Note note) {
 
@@ -283,19 +398,6 @@ public class DynamoDbRepo implements IRepository {
         return itemValues;
     }
 
-    private Note toNote(Map<String, AttributeValue> itemValues) {
-
-        return new Note(
-                itemValues.get(PARTITION_KEY_NAME).s(),
-                LocalDateTime.parse(itemValues.get("timestamp").s()),
-                itemValues.get("noteId").s(),
-                itemValues.getOrDefault("groupId", AttributeValue.builder().s("invalid_group").build()).s(),
-                itemValues.getOrDefault("label", AttributeValue.builder().s("invalid_label").build()).s(),
-                itemValues.getOrDefault("isValid", AttributeValue.builder().bool(false).build()).bool(),
-                itemValues.getOrDefault("isPinned", AttributeValue.builder().bool(false).build()).bool(),
-                itemValues.getOrDefault("content", AttributeValue.builder().s("[empty note]").build()).s());
-    }
-
     private Map<String, AttributeValue> toItemValues(Reminder reminder) {
 
         Map<String, AttributeValue> itemValues = new HashMap<>();
@@ -309,6 +411,19 @@ public class DynamoDbRepo implements IRepository {
         itemValues.put("content", AttributeValue.builder().s(reminder.getContent()).build());
 
         return itemValues;
+    }
+
+    private Note toNote(Map<String, AttributeValue> itemValues) {
+
+        return new Note(
+                itemValues.get(PARTITION_KEY_NAME).s(),
+                LocalDateTime.parse(itemValues.get("timestamp").s()),
+                itemValues.get("noteId").s(),
+                itemValues.getOrDefault("groupId", AttributeValue.builder().s("invalid_group").build()).s(),
+                itemValues.getOrDefault("label", AttributeValue.builder().s("invalid_label").build()).s(),
+                itemValues.getOrDefault("isValid", AttributeValue.builder().bool(false).build()).bool(),
+                itemValues.getOrDefault("isPinned", AttributeValue.builder().bool(false).build()).bool(),
+                itemValues.getOrDefault("content", AttributeValue.builder().s("[empty note]").build()).s());
     }
 
     private Reminder toReminder(Map<String, AttributeValue> itemValues) {

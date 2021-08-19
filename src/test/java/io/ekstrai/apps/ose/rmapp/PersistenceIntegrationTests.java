@@ -17,8 +17,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = RmappApplication.class)
@@ -157,5 +156,104 @@ public class PersistenceIntegrationTests {
 
         LOG.info(mapper.writeValueAsString(returnedReminder));
     }
+
+    @SneakyThrows
+    @Test
+    public void updateReminderFlagAttribute_withPrimaryKey_successfully() {
+
+        final Reminder reminder = new Reminder(
+                "user_test", LocalDateTime.now(), LocalDateTime.now().plusDays(2), "work", "meeting");
+
+        assertTrue(repo.addItem(reminder));
+
+        assertTrue(repo.updateItem(Reminder.class,
+                reminder.getUserId(), reminder.getTimestamp().toString(), "isValid", false));
+
+        Reminder returnedReminder = repo.getReminder(
+                reminder.getUserId(), reminder.getTimestamp().toString());
+
+        LOG.info(mapper.writeValueAsString(reminder));
+        LOG.info(mapper.writeValueAsString(returnedReminder));
+
+        assertTrue(reminder.isValid());
+        assertFalse(returnedReminder.isValid());
+    }
+
+
+    @SneakyThrows
+    @Test
+    public void updateNoteFlagAttribute_withPrimaryKey_successfully() {
+
+        final Note note =  new Note(
+                "user_test", LocalDateTime.now(), "group", "label", "A note");
+
+        assertTrue(repo.addItem(note));
+
+        // test updating isValid flag
+        assertTrue(repo.updateItem(Note.class,
+                note.getUserId(), note.getTimestamp().toString(), "isValid", false));
+
+        final Note returnedNote = repo.getNote(
+                note.getUserId(), note.getTimestamp().toString());
+
+        LOG.info(mapper.writeValueAsString(note));
+        LOG.info(mapper.writeValueAsString(returnedNote) + "\n");
+
+        assertTrue(note.isValid());
+        assertFalse(returnedNote.isValid());
+
+        // test updating isPinned flag
+        assertTrue(repo.updateItem(Note.class,
+                note.getUserId(), note.getTimestamp().toString(), "isPinned", true));
+
+        final Note returnedPinnedNote = repo.getNote(
+                note.getUserId(), note.getTimestamp().toString());
+
+        LOG.info(mapper.writeValueAsString(note));
+        LOG.info(mapper.writeValueAsString(returnedPinnedNote));
+
+        assertFalse(note.isPinned());
+        assertFalse(returnedNote.isPinned());
+        assertTrue(returnedPinnedNote.isPinned());
+    }
+
+    @SneakyThrows
+    @Test
+    public void updateReminderContentAttribute_withPrimaryKey_successfully() {
+
+        final Reminder reminder = new Reminder(
+                "user_test", LocalDateTime.now(), LocalDateTime.now().plusDays(2), "work", "meeting");
+
+        assertTrue(repo.addItem(reminder));
+
+        // test updating content text field
+        assertTrue(repo.updateItem(Reminder.class,
+                reminder.getUserId(), reminder.getTimestamp().toString(), "content", "shopping"));
+
+        Reminder returnedReminder = repo.getReminder(
+                reminder.getUserId(), reminder.getTimestamp().toString());
+
+        LOG.info(mapper.writeValueAsString(reminder));
+        LOG.info(mapper.writeValueAsString(returnedReminder) + "\n");
+
+        assertNotEquals(reminder.getContent(), returnedReminder.getContent());
+        assertEquals(returnedReminder.getContent(), "shopping");
+
+        // test updating remindDate field
+        assertTrue(repo.updateItem(Reminder.class,
+                reminder.getUserId(), reminder.getTimestamp().toString(),
+                "remindDate", LocalDateTime.now().plusDays(3).toString()));
+
+        Reminder returnedChangedRemindDateReminder = repo.getReminder(
+                reminder.getUserId(), reminder.getTimestamp().toString());
+
+        LOG.info(mapper.writeValueAsString(reminder));
+        LOG.info(mapper.writeValueAsString(returnedChangedRemindDateReminder));
+
+        assertEquals(reminder.getRemindDate(), returnedReminder.getRemindDate());
+        assertNotEquals(reminder.getRemindDate(), returnedChangedRemindDateReminder.getRemindDate());
+
+    }
+
 
 }
