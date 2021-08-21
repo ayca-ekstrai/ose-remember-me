@@ -2,6 +2,7 @@ package io.ekstrai.apps.ose.rmapp.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.ekstrai.apps.ose.rmapp.persistance.DynamoDbRepo;
+import io.ekstrai.apps.ose.rmapp.service.RmService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,6 +45,11 @@ public class AppConfig {
     @Bean(name = "mapper")
     public ObjectMapper mapper() {
         return new ObjectMapper().findAndRegisterModules();
+    }
+
+    @Bean(name = "service")
+    public RmService rmService() {
+        return new RmService();
     }
 
 }
