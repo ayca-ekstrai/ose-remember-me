@@ -4,13 +4,20 @@ import io.ekstrai.apps.ose.rmapp.api.Note;
 import io.ekstrai.apps.ose.rmapp.api.Reminder;
 import io.ekstrai.apps.ose.rmapp.persistance.DynamoDbRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+
 public class RmService implements IService {
+
 
     @Autowired
     private DynamoDbRepo repo;
+
+
 
     //--------- Note Related Services ---------
 

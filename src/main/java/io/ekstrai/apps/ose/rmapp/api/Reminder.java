@@ -16,6 +16,17 @@ public class Reminder {
     private final boolean isValid;
     private final String content;
 
+    public Reminder(String userId, LocalDateTime remindDate, String label, String content) {
+
+        this.userId = userId;
+        this.timestamp = LocalDateTime.now();
+        this.reminderId = String.valueOf(UUID.randomUUID());
+        this.remindDate = remindDate;
+        this.label = label;
+        this.isValid = true;
+        this.content = content;
+    }
+
     public Reminder(String userId, LocalDateTime timestamp, LocalDateTime remindDate, String label, String content) {
 
         this.userId = userId;

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.ekstrai.apps.ose.rmapp.api.Note;
 import io.ekstrai.apps.ose.rmapp.api.Reminder;
 import io.ekstrai.apps.ose.rmapp.persistance.DynamoDbRepo;
+import io.ekstrai.apps.ose.rmapp.service.RmService;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +33,9 @@ public class PersistenceIntegrationTests {
 
     @Autowired
     private ObjectMapper mapper;
+
+    @Autowired
+    private RmService service;
 
     @Test
     public void contextLoads() {
@@ -254,6 +258,29 @@ public class PersistenceIntegrationTests {
         assertNotEquals(reminder.getRemindDate(), returnedChangedRemindDateReminder.getRemindDate());
 
     }
+
+    @SneakyThrows
+    @Test
+    public void serviceLayerGetNote(){
+        Note note = service.getNote("3785f66a-9f17-4f0e-9949-9838916b5532");
+        assertNotNull(note);
+        LOG.info(mapper.writeValueAsString(note));
+    }
+
+    @SneakyThrows
+    @Test
+    public void serviceLayerGetAllNotes(){
+        final Note note =  new Note(
+                "user_test", LocalDateTime.now(), "group", "label", "A note");
+
+        assertTrue(repo.addItem(note));
+        List<Note> notes = service.getAllNotes("user_test");
+        assertTrue(notes.size() > 0);
+        LOG.info(mapper.writeValueAsString(notes));
+    }
+
+
+
 
 
 }

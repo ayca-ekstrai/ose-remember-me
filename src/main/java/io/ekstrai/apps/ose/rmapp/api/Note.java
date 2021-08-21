@@ -17,6 +17,18 @@ public class Note {
     private final boolean isPinned;
     private final String content;
 
+    public Note(String userId, String groupId, String label, String content) {
+
+        this.userId = userId;
+        this.timestamp = LocalDateTime.now();
+        this.label = label;
+        this.noteId = String.valueOf(UUID.randomUUID());
+        this.groupId = groupId;
+        this.isValid = true;
+        this.isPinned = false;
+        this.content = content;
+    }
+
     public Note(String userId, LocalDateTime timestamp, String groupId, String label, String content) {
 
         this.userId = userId;

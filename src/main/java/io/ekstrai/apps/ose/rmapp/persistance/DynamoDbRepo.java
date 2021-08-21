@@ -5,6 +5,7 @@ import io.ekstrai.apps.ose.rmapp.api.Reminder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
@@ -16,7 +17,9 @@ import java.util.*;
     TODO Key Names need to be enumized
     TODO duplicate code can be refactored further thru passing in class type as param
     TODO more useful logs can be added
+    TODO no query limit safety in several methods
  */
+
 
 public class DynamoDbRepo implements IRepository {
 
@@ -33,6 +36,8 @@ public class DynamoDbRepo implements IRepository {
 
     @Autowired
     private String reminderTable;
+
+
 
     /**
      * Updates a single item and single string type attribute in dynamo table.
@@ -134,6 +139,7 @@ public class DynamoDbRepo implements IRepository {
      * @param userId partition key value for Note table
      * @return List of Note objects with specified partition key.
      */
+    //TODO Not limit safe
     public List<Note> getAllNotes_withUserId(String userId) {
 
         List<Note> notes = new ArrayList<>();
@@ -150,6 +156,7 @@ public class DynamoDbRepo implements IRepository {
      * @param userId partition key value for Note table
      * @return List of Note objects with specified partition key.
      */
+    //TODO Not limit safe
     public List<Reminder> getAllReminder_withUserId(String userId) {
 
         List<Reminder> reminders = new ArrayList<>();

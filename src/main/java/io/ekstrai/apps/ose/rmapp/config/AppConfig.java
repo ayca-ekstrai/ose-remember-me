@@ -1,12 +1,15 @@
 package io.ekstrai.apps.ose.rmapp.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.ekstrai.apps.ose.rmapp.RmController;
 import io.ekstrai.apps.ose.rmapp.persistance.DynamoDbRepo;
 import io.ekstrai.apps.ose.rmapp.service.RmService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 @Configuration
@@ -39,6 +42,7 @@ public class AppConfig {
 
     @Bean(name = "repo")
     public DynamoDbRepo dynamoDbRepo() {
+
         return new DynamoDbRepo();
     }
 
@@ -51,5 +55,6 @@ public class AppConfig {
     public RmService rmService() {
         return new RmService();
     }
+
 
 }
