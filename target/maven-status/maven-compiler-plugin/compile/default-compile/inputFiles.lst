@@ -1,0 +1,10 @@
+/Users/ayca/Documents/sandbox/workspace/ose-remember-me/src/main/java/io/ekstrai/apps/ose/rmapp/config/AppConfig.java
+/Users/ayca/Documents/sandbox/workspace/ose-remember-me/src/main/java/io/ekstrai/apps/ose/rmapp/RmappApplication.java
+/Users/ayca/Documents/sandbox/workspace/ose-remember-me/src/main/java/io/ekstrai/apps/ose/rmapp/api/Reminder.java
+/Users/ayca/Documents/sandbox/workspace/ose-remember-me/src/main/java/io/ekstrai/apps/ose/rmapp/api/Note.java
+/Users/ayca/Documents/sandbox/workspace/ose-remember-me/src/main/java/io/ekstrai/apps/ose/rmapp/persistance/IRepository.java
+/Users/ayca/Documents/sandbox/workspace/ose-remember-me/src/main/java/io/ekstrai/apps/ose/rmapp/persistance/DynamoDbRepo.java
+/Users/ayca/Documents/sandbox/workspace/ose-remember-me/src/main/java/io/ekstrai/apps/ose/rmapp/service/RmService.java
+/Users/ayca/Documents/sandbox/workspace/ose-remember-me/src/main/java/io/ekstrai/apps/ose/rmapp/RmController.java
+/Users/ayca/Documents/sandbox/workspace/ose-remember-me/src/main/java/io/ekstrai/apps/ose/rmapp/config/ImmutableConfigProperties.java
+/Users/ayca/Documents/sandbox/workspace/ose-remember-me/src/main/java/io/ekstrai/apps/ose/rmapp/service/IService.java
