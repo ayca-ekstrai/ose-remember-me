@@ -74,8 +74,7 @@ public class PersistenceIntegrationTests {
         List<Note> notes = repo.getAllNotes_withUserId("user_test");
         assertTrue(notes.size() > 0);
 
-        LOG.info(mapper.writeValueAsString(notes));
-        LOG.info(String.valueOf(notes.size()));
+        LOG.info("Note list Size: " + notes.size());
     }
 
     @SneakyThrows
@@ -90,8 +89,7 @@ public class PersistenceIntegrationTests {
         List<Reminder> reminders = repo.getAllReminder_withUserId("user_test");
         assertTrue(reminders.size() > 0);
 
-        LOG.info(mapper.writeValueAsString(reminders));
-        LOG.info(String.valueOf(reminders.size()));
+        LOG.info("Reminder list Size: " + reminders.size());
     }
 
     @SneakyThrows

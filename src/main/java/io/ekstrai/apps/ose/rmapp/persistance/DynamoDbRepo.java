@@ -40,6 +40,58 @@ public class DynamoDbRepo implements IRepository {
 
 
     /**
+     * Updates a single item's isPinned attribute.
+     * @param cls the Class type of the POJO Item. Only Reminder or Note classes allowed.
+     * @param partKey the partition key
+     * @param sortKey the sort key
+     * @param isPinned pinned flag
+     * @return true of updating item is complete successfully
+     */
+    public boolean updateItemPin(Class <?> cls, String partKey, String sortKey, boolean isPinned) {
+
+        return updateItem(cls, partKey, sortKey, "isPinned", isPinned);
+    }
+
+    /**
+     * Updates a single item's isValid attribute.
+     * @param cls the Class type of the POJO Item. Only Reminder or Note classes allowed.
+     * @param partKey the partition key
+     * @param sortKey the sort key
+     * @param isValid validity flag
+     * @return true of updating item is complete successfully
+     */
+    public boolean updateItemValidity(Class <?> cls, String partKey, String sortKey, boolean isValid) {
+
+        return updateItem(cls, partKey, sortKey, "isValid", isValid);
+    }
+
+    /**
+     * Updates a single item's content attribute.
+     * @param cls the Class type of the POJO Item. Only Reminder or Note classes allowed.
+     * @param partKey the partition key
+     * @param sortKey the sort key
+     * @param content the new content to be updated
+     * @return true of updating item is complete successfully
+     */
+    public boolean updateItemContent(Class <?> cls, String partKey, String sortKey, String content) {
+
+        return updateItem(cls, partKey, sortKey, "content", content);
+    }
+
+    /**
+     * Updates a single item's content attribute.
+     * @param cls the Class type of the POJO Item. Only Reminder or Note classes allowed.
+     * @param partKey the partition key
+     * @param sortKey the sort key
+     * @param label the new content to be updated
+     * @return true of updating item is complete successfully
+     */
+    public boolean updateItemLabel(Class <?> cls, String partKey, String sortKey, String label) {
+
+        return updateItem(cls, partKey, sortKey, "label", label);
+    }
+
+    /**
      * Updates a single item and single string type attribute in dynamo table.
      * @param cls the Class type of the POJO Item. Only Reminder or Note classes allowed.
      * @param partKey the partition key
