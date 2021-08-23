@@ -1,6 +1,9 @@
 package io.ekstrai.apps.ose.rmapp.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.util.StdDateFormat;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.ekstrai.apps.ose.rmapp.RmController;
 import io.ekstrai.apps.ose.rmapp.persistance.DynamoDbRepo;
 import io.ekstrai.apps.ose.rmapp.service.RmService;
@@ -48,7 +51,10 @@ public class AppConfig {
 
     @Bean(name = "mapper")
     public ObjectMapper mapper() {
-        return new ObjectMapper().findAndRegisterModules();
+        return new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .setDateFormat(new StdDateFormat().withColonInTimeZone(true));
     }
 
     @Bean(name = "service")
